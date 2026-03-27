@@ -94,7 +94,6 @@ jobs:
           cmake --build build -j$(nproc)
           cmake --install build
 
-
       - name: Build hyprwayland-scanner
         run: |
           git clone --depth=1 https://github.com/hyprwm/hyprwayland-scanner.git
@@ -106,6 +105,7 @@ jobs:
 
       - name: Add /opt/hypr/bin to PATH
         run: echo "/opt/hypr/bin" >> $GITHUB_PATH
+
 
       - name: Build wayland 1.23.1
         run: |
@@ -153,8 +153,8 @@ jobs:
             -DCMAKE_C_COMPILER=gcc-15 \
             -DCMAKE_CXX_COMPILER=g++-15 \
             -DCMAKE_PREFIX_PATH="$PREFIX:/usr/local" \
-            -DCMAKE_SHARED_LINKER_FLAGS="-Wl,-rpath,/usr/local/lib:/opt/hypr/lib" \
-            -DCMAKE_EXE_LINKER_FLAGS="-Wl,-rpath,/usr/local/lib:/opt/hypr/lib" \
+            -DCMAKE_SHARED_LINKER_FLAGS="-L/usr/local/lib -Wl,-rpath,/usr/local/lib:/opt/hypr/lib" \
+            -DCMAKE_EXE_LINKER_FLAGS="-L/usr/local/lib -Wl,-rpath,/usr/local/lib:/opt/hypr/lib" \
             -S . -B build
           cmake --build build --target aquamarine -j$(nproc)
           cmake --install build
@@ -199,10 +199,13 @@ jobs:
           sudo cmake -S glaze -B glaze/build -DCMAKE_INSTALL_PREFIX=/usr/local -DGLAZE_ENABLE_TESTS=OFF
           sudo cmake --install glaze/build
 
+
       - name: Build Hyprland 0.54.0
         run: |
           set -e
-          export PKG_CONFIG_PATH="/opt/hypr/lib/pkgconfig:/opt/hypr/lib/x86_64-linux-gnu/pkgconfig:/opt/hypr/share/pkgconfig:/usr/local/lib/pkgconfig:/usr/local/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/pkgconfig"
+          # Remove system libinput-dev so linker only finds our custom /opt/hypr build
+          sudo apt-get remove -y libinput-dev || true
+          export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/lib/x86_64-linux-gnu/pkgconfig:/opt/hypr/lib/pkgconfig:/opt/hypr/lib/x86_64-linux-gnu/pkgconfig:/opt/hypr/share/pkgconfig:/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/pkgconfig"
           export PATH="/opt/hypr/bin:$PATH"
           git clone --depth=1 --branch v0.54.0 https://github.com/hyprwm/Hyprland.git
           cd Hyprland
@@ -218,24 +221,9 @@ jobs:
             -DCMAKE_CXX_COMPILER=g++-15 \
             -DCMAKE_CXX_STANDARD=26 \
             -DCMAKE_PREFIX_PATH="/opt/hypr;/usr/local" \
+            -DCMAKE_EXE_LINKER_FLAGS="-L/opt/hypr/lib -L/usr/local/lib -Wl,-rpath,/opt/hypr/lib:/usr/local/lib" \
+            -DCMAKE_SHARED_LINKER_FLAGS="-L/opt/hypr/lib -L/usr/local/lib -Wl,-rpath,/opt/hypr/lib:/usr/local/lib" \
             -S . -B build
-          cmake --build build -j$(nproc)
-          cmake --install build
-
-
-      - name: Build xdg-desktop-portal-hyprland
-        run: |
-          set -e
-          git clone --depth=1 --recursive https://github.com/hyprwm/xdg-desktop-portal-hyprland.git
-          cd xdg-desktop-portal-hyprland
-          cmake \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_C_COMPILER=gcc-15 \
-            -DCMAKE_CXX_COMPILER=g++-15 \
-            -DCMAKE_PREFIX_PATH=$PREFIX \
-            -DCMAKE_INSTALL_LIBEXECDIR=$PREFIX/lib \
-            -DCMAKE_INSTALL_PREFIX=$PREFIX \
-            -B build
           cmake --build build -j$(nproc)
           cmake --install build
 
